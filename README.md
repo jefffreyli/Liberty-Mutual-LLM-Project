@@ -27,6 +27,7 @@ Run the main script.
 
 ```bash
 python src/main.py
+```
 
 ## Project structure
 
