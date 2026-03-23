@@ -1,1 +1,16 @@
+# env files
 .env
+.env.*
+!.env.example
+
+# virtual environments
+.venv/
+venv/
+env/
+
+# pycache
+__pycache__/
+
+# other files
+project.md
+notes.txt

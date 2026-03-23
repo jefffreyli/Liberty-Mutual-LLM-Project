@@ -1,3 +1,6 @@
 - distracting paragraphs shouldn't be conflicting data
-- create a rubric scoring function as reward function
-    - 0/1 reward
+- create a rubric scoring function for data quality
+- should be instructions not questions
+
+Papers to read 
+- reasoning

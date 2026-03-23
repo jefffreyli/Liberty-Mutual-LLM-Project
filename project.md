@@ -17,7 +17,3 @@ Goals
 Technical Stack: Python, Pydantic for schema validation, and OpenAI API for "Teacher" data generation. Always prioritize "adversarial" noise to ensure the model learns to be skeptical of retrieved text.
 
 Example dataset: https://huggingface.co/datasets/dgslibisey/MuSiQue/viewer/default/validation?row=0
-
-Rules to follow:
-- Prioritize simple code and structures over complex ones.
-- Follow modular design principles
