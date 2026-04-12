@@ -13,7 +13,7 @@ cp .env.example .env
 Setup the virtual environment.
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 ```
 
@@ -26,26 +26,6 @@ pip install -r requirements.txt
 Run the main script.
 
 ```bash
-python src/main.py
+python3 -m src.main
 ```
 
-## Project structure
-
-```
-src/
-├── data/
-│   ├── generator.py
-│   ├── evaluator.py # rubric-based quality gate
-│   ├── noise.py
-│   └── prompts.py
-├── schema/
-│   ├── core.py
-│   ├── evaluation.py
-│   ├── generation.py
-│   └── schemas.py
-├── utils/
-│   ├── llm_client.py
-├── config.py
-├── main.py # CLI entry point
-└── requirements.txt
-```

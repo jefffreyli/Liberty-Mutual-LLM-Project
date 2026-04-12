@@ -2,9 +2,8 @@
 
 from ..config import HARD_PASS_METRICS, METRIC_WEIGHTS, QUALITY_THRESHOLD
 from ..schema import EvaluationResult, RubricVerdict, TrainingRow
-from ..utils.llm_client import generate
+from ..utils.llm_client import get_llm_client
 from .prompts import RUBRIC_PROMPT
-
 
 def _build_rubric_prompt(row: TrainingRow) -> str:
     """Format a TrainingRow into the rubric evaluation prompt."""
@@ -60,5 +59,6 @@ def _compute_gate_decision(verdict: RubricVerdict) -> EvaluationResult:
 def evaluate_row(row: TrainingRow) -> EvaluationResult:
     """Evaluate a training row against the rubric and return a gate decision."""
     prompt = _build_rubric_prompt(row)
-    verdict = generate(prompt, RubricVerdict)
+    client = get_llm_client()
+    verdict = client.generate(prompt, RubricVerdict)
     return _compute_gate_decision(verdict)

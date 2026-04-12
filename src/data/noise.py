@@ -4,12 +4,14 @@ import random
 
 from ..config import NUM_DISTRACTORS
 from ..schema import DistractorResponse, SearchResult
-from ..utils.llm_client import generate
+from ..utils.llm_client import get_llm_client
 from .prompts import DISTRACTOR_PROMPT
 
 
 def generate_distractors(
-    instruction: str, informative_chunks: list[SearchResult], n: int = NUM_DISTRACTORS
+    instruction: str,
+    informative_chunks: list[SearchResult],
+    n: int = NUM_DISTRACTORS,
 ) -> list[SearchResult]:
     """Generate n neighboring-concept distractor paragraphs."""
     informative_text = "\n\n".join(
@@ -18,7 +20,8 @@ def generate_distractors(
     prompt = DISTRACTOR_PROMPT.format(
         instruction=instruction, informative_text=informative_text, n=n
     )
-    result = generate(prompt, DistractorResponse)
+    client = get_llm_client()
+    result = client.generate(prompt, DistractorResponse)
     return [
         SearchResult(id=-1, title=p.title, text=p.text, is_informative=False)
         for p in result.paragraphs
