@@ -13,6 +13,7 @@ from . import (
     RationaleResponse,
     RubricVerdict,
     SearchResult,
+    SeedExample,
     TrainingRow,
 )
 
@@ -33,5 +34,6 @@ __all__ = [
     "RationaleResponse",
     "RubricVerdict",
     "SearchResult",
+    "SeedExample",
     "TrainingRow",
 ]

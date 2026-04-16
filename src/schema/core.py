@@ -1,5 +1,3 @@
-"""Core SAIL training data models."""
-
 from pydantic import BaseModel
 
 

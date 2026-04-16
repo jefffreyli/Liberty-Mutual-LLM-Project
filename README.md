@@ -23,6 +23,12 @@ Install the dependencies.
 pip install -r requirements.txt
 ```
 
+Log into HuggingFace and follow steps.
+
+```
+hf auth login
+```
+
 Run the main script.
 
 ```bash

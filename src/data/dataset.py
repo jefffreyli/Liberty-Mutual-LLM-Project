@@ -1,3 +1,6 @@
+from src.data.seed_loader import SeedLoader
+import random
+
 from ..config import MAX_RETRIES_PER_ROW
 from ..schema import TrainingRow
 from ..utils.llm_client import get_llm_client
@@ -10,12 +13,18 @@ from .instruction import (
     generate_rationale,
 )
 from .noise import build_search_pool, generate_distractors
+from src import config
 
 class Dataset:
     def __init__(self, num_rows: int):
         self.row_prefix = "row_"
         self.rows: list[TrainingRow] = []
         self.num_rows = num_rows
+        dataset_name = config.SEED_DATASET_NAME
+        seed_loader = SeedLoader(dataset_name)
+        self.seeds = seed_loader.load_seeds()
+        if not self.seeds:
+            raise ValueError(f"No seeds loaded from dataset '{dataset_name}'")
 
     def generate_row(self, row_id: str) -> TrainingRow:
         """
@@ -23,7 +32,8 @@ class Dataset:
         If the row fails the evaluation gate, retry up to MAX_RETRIES_PER_ROW times.
         """
         for attempt in range(1, MAX_RETRIES_PER_ROW + 1):
-            qa = generate_instruction_bundle()
+            seed = random.choice(self.seeds)
+            qa = generate_instruction_bundle(seed)
             informative_chunks = build_informative_chunks(qa)
 
             distractors = generate_distractors(

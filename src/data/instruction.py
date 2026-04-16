@@ -7,15 +7,22 @@ from ..schema import (
     RationaleResponse,
     SearchResult,
 )
+from ..schema.seed import SeedExample
 from ..utils.llm_client import get_llm_client
 from .prompts import GENERAL_INSTRUCTION_PROMPT, RATIONALE_PROMPT, RESPONSE_PROMPT
 
-def generate_instruction_bundle() -> InstructionGenerationResponse:
+def generate_instruction_bundle(seed: SeedExample) -> InstructionGenerationResponse:
     """
     Generate a multi-hop instruction with decomposition and informative paragraphs.
     """
     client = get_llm_client()
-    return client.generate(GENERAL_INSTRUCTION_PROMPT, InstructionGenerationResponse)
+    prompt = GENERAL_INSTRUCTION_PROMPT.format(
+        seed_instruction=seed.instruction,
+        seed_input=seed.input,
+        seed_output=seed.output,
+    )
+    response = client.generate(prompt, InstructionGenerationResponse)
+    return response
 
 def build_informative_chunks(qa: InstructionGenerationResponse) -> list[SearchResult]:
     """

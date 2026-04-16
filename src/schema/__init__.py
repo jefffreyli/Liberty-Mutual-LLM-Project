@@ -11,6 +11,7 @@ from .generation import (
     RationaleResponse,
 )
 from .evaluation import EvaluationResult, MetricScore, RubricVerdict
+from .seed import SeedExample
 
 # Backward compatibility alias for older imports/usages.
 QuestionGenerationResponse = InstructionGenerationResponse
@@ -30,4 +31,5 @@ __all__ = [
     "EvaluationResult",
     "MetricScore",
     "RubricVerdict",
+    "SeedExample",
 ]

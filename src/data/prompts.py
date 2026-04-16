@@ -2,11 +2,17 @@
 
 GENERAL_INSTRUCTION_PROMPT = """You are an expert dataset author. Generate a clear multi-step instruction about common, general-knowledge topics that a non-specialist can manually verify.
 
+Use this seed example as inspiration for style and structure, but do NOT copy it:
+- Seed instruction: {seed_instruction}
+- Seed input: {seed_input}
+- Seed output: {seed_output}
+
 The instruction must:
 - Require at least 2 reasoning steps (hops) to complete correctly
 - Use everyday domains (e.g. travel planning, school tasks, budgeting, scheduling, cooking, health habits, consumer decisions, workplace logistics)
 - Have a clear, factual target output
 - Avoid niche technical jargon and domain-specific legal/regulatory detail
+- Be meaningfully different from the seed example in topic and wording
 
 Provide:
 1. The multi-hop instruction
