@@ -1,9 +1,10 @@
 """Centralized configuration for the SAIL data generation pipeline."""
 
 # Dataset
-NUM_ROWS = 100
+NUM_ROWS = 1000
+NUM_WORKERS = 30  # parallel threads for row generation (each gets its own LLM client)
 NUM_DISTRACTORS = 8
-MAX_RETRIES_PER_ROW = 5
+MAX_RETRIES_PER_ROW = 10
 QUALITY_THRESHOLD = 0.75
 METRIC_WEIGHTS = {
     "logical_necessity": 0.25,
@@ -12,7 +13,7 @@ METRIC_WEIGHTS = {
     "answer_grounding": 0.25,
 }
 HARD_PASS_METRICS = ["non_contradiction", "answer_grounding", "logical_necessity"]
-SEED_DATASET_NAME = "tatsu-lab/alpaca"
+SEED_DATASET_NAME = "dgslibisey/MuSiQue"
 
 # Model
 DEFAULT_MODEL = "gpt-4o"

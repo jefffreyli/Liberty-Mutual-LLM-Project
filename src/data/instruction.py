@@ -9,18 +9,34 @@ from ..schema import (
 )
 from ..schema.seed import SeedExample
 from ..utils.llm_client import get_llm_client
-from .prompts import GENERAL_INSTRUCTION_PROMPT, RATIONALE_PROMPT, RESPONSE_PROMPT
+from .prompts import (
+    GENERAL_INSTRUCTION_PROMPT,
+    NO_SEED_INSTRUCTION_BLOCK,
+    RATIONALE_PROMPT,
+    RESPONSE_PROMPT,
+    SEED_EXAMPLE_BLOCK,
+)
 
-def generate_instruction_bundle(seed: SeedExample) -> InstructionGenerationResponse:
+def generate_instruction_bundle(seed: SeedExample | None = None) -> InstructionGenerationResponse:
     """
     Generate a multi-hop instruction with decomposition and informative paragraphs.
+    If ``seed`` is None, the model generates an instruction without a seed example.
     """
     client = get_llm_client()
-    prompt = GENERAL_INSTRUCTION_PROMPT.format(
-        seed_instruction=seed.instruction,
-        seed_input=seed.input,
-        seed_output=seed.output,
-    )
+    if seed is None:
+        seed_block = NO_SEED_INSTRUCTION_BLOCK
+    else:
+        decomp_text = "\n".join(
+            f"  {i+1}. Q: {step.question} A: {step.answer}"
+            for i, step in enumerate(seed.question_decomposition)
+        ) or "  (none)"
+        seed_block = SEED_EXAMPLE_BLOCK.format(
+            seed_instruction=seed.instruction,
+            seed_paragraphs=seed.paragraphs or "(none)",
+            seed_decomposition=decomp_text,
+            seed_output=seed.output,
+        )
+    prompt = GENERAL_INSTRUCTION_PROMPT.format(seed_block=seed_block)
     response = client.generate(prompt, InstructionGenerationResponse)
     return response
 

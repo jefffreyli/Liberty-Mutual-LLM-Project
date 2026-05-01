@@ -1,18 +1,23 @@
 # Prompt for generating multi-hop instructions.
 
+SEED_EXAMPLE_BLOCK = """Use this seed example as inspiration for style and structure, but do NOT copy it:
+- Seed instruction: {seed_instruction}
+- Seed paragraphs: {seed_paragraphs}
+- Seed decomposition: {seed_decomposition}
+- Seed output: {seed_output}
+The generated instruction must be meaningfully different from the seed example in topic and wording."""
+
+NO_SEED_INSTRUCTION_BLOCK = """No seed example is provided. Generate a multi-hop instruction from scratch without copying any prior example."""
+
 GENERAL_INSTRUCTION_PROMPT = """You are an expert dataset author. Generate a clear multi-step instruction about common, general-knowledge topics that a non-specialist can manually verify.
 
-Use this seed example as inspiration for style and structure, but do NOT copy it:
-- Seed instruction: {seed_instruction}
-- Seed input: {seed_input}
-- Seed output: {seed_output}
+{seed_block}
 
 The instruction must:
 - Require at least 2 reasoning steps (hops) to complete correctly
 - Use everyday domains (e.g. travel planning, school tasks, budgeting, scheduling, cooking, health habits, consumer decisions, workplace logistics)
 - Have a clear, factual target output
 - Avoid niche technical jargon and domain-specific legal/regulatory detail
-- Be meaningfully different from the seed example in topic and wording
 
 Provide:
 1. The multi-hop instruction
@@ -106,6 +111,8 @@ RUBRIC_PROMPT = """You are evaluating a synthetic training example for a search-
 
 __all__ = [
     "GENERAL_INSTRUCTION_PROMPT",
+    "SEED_EXAMPLE_BLOCK",
+    "NO_SEED_INSTRUCTION_BLOCK",
     "INSURANCE_INSTRUCTION_PROMPT",
     "RATIONALE_PROMPT",
     "RESPONSE_PROMPT",

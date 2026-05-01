@@ -33,5 +33,6 @@ Run the main script.
 
 ```bash
 python3 -m src.main
+python3 -m src.training.train
 ```
 

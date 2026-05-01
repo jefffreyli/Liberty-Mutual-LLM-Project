@@ -23,6 +23,7 @@ class TrainingRow(BaseModel):
     """Complete SAIL training example."""
 
     id: str
+    source: str = "generated"  # seed dataset name, or "generated" if no seed was used
     instruction: str
     decomposition: list[DecompositionStep]
     search_pool: list[SearchResult]

@@ -21,14 +21,24 @@ def main():
 
     # generate dataset
     print(f"Generating {num_rows} training rows...")
-    dataset = Dataset(num_rows=num_rows)
+    dataset = Dataset(num_rows=num_rows, seed_dataset_name=config.SEED_DATASET_NAME)
     dataset.generate_dataset()
     input_cost, output_cost = dataset.get_total_cost()
 
-    # write to JSON
-    data = [row.model_dump() for row in dataset.rows]
+    # write rows and config metadata to JSON
+    output = {
+        "config": {
+            "num_rows": num_rows,
+            "seed_dataset_name": config.SEED_DATASET_NAME or None,
+            "input_cost": input_cost,
+            "output_cost": output_cost,
+            "default_model": config.DEFAULT_MODEL,
+            "token_price": config.TOKEN_PRICE,
+        },
+        "data": [row.model_dump() for row in dataset.rows],
+    }
     with open(output_path, "w") as f:
-        json.dump(data, f, indent=2)
+        json.dump(output, f, indent=2)
 
     print(f"Wrote {len(dataset.rows)} rows to {output_path}")
     print(f"Token cost (input/output): ${input_cost:.4f} / ${output_cost:.4f}")
