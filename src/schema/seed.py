@@ -1,4 +1,7 @@
+"""Schemas for seed examples pulled from an existing multi-hop dataset to inspire generation."""
+
 from __future__ import annotations
+
 from pydantic import BaseModel
 
 

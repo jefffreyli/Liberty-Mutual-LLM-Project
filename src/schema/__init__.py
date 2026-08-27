@@ -1,6 +1,6 @@
-"""Public schema exports for the SAIL pipeline."""
+"""Public schema exports for the pipeline."""
 
-from .core import DecompositionStep, SearchResult, TrainingRow
+from .core import UNASSIGNED_ID, DecompositionStep, SearchResult, TrainingRow
 from .generation import (
     DistractorParagraph,
     DistractorResponse,
@@ -10,13 +10,11 @@ from .generation import (
     InstructionGenerationResponse,
     RationaleResponse,
 )
-from .evaluation import EvaluationResult, MetricScore, RubricVerdict
+from .rubric import EvaluationResult, MetricScore, RubricVerdict, UnanswerableVerdict
 from .seed import SeedExample
 
-# Backward compatibility alias for older imports/usages.
-QuestionGenerationResponse = InstructionGenerationResponse
-
 __all__ = [
+    "UNASSIGNED_ID",
     "DecompositionStep",
     "SearchResult",
     "TrainingRow",
@@ -26,10 +24,10 @@ __all__ = [
     "GroundedResponse",
     "InformativeParagraph",
     "InstructionGenerationResponse",
-    "QuestionGenerationResponse",
     "RationaleResponse",
     "EvaluationResult",
     "MetricScore",
     "RubricVerdict",
+    "UnanswerableVerdict",
     "SeedExample",
 ]

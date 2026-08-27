@@ -1,1 +1,1 @@
-"""SAIL synthetic data generation pipeline for insurance-domain multi-hop QA."""
+"""Synthetic multi-hop instruction data generation and Tinker fine-tuning."""

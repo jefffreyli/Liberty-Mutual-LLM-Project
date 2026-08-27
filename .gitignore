@@ -11,6 +11,15 @@ env/
 # pycache
 __pycache__/
 
-# other files
-project.md
+# macOS
+.DS_Store
+
+# scratch
 notes.txt
+
+# Derived outputs. Everything under artifacts/ can be regenerated, except the one
+# small run committed as a sample of the generated format.
+artifacts/*
+!artifacts/runs/
+artifacts/runs/*
+!artifacts/runs/sample_run.json
