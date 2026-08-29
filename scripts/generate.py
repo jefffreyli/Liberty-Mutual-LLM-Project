@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src.config import generation as config
-from src.config.models import DEFAULT_MODEL, TOKEN_PRICE
+from src.config.models import DEFAULT_MODEL, MODELS
 from src.generation.generator import DatasetGenerator
 from src.paths import RUNS_DIR
 
@@ -33,7 +33,7 @@ def write_run(generator: DatasetGenerator, output_path: Path) -> None:
             "input_cost": input_cost,
             "output_cost": output_cost,
             "default_model": DEFAULT_MODEL,
-            "token_price": TOKEN_PRICE,
+            "token_price": MODELS[DEFAULT_MODEL],
         },
         "data": [row.model_dump() for row in generator.rows],
     }

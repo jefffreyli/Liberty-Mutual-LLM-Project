@@ -1,1 +1,3 @@
-"""Thread-local OpenAI clients and the token accounting that prices their calls."""
+"""Thread-local provider clients, keyed by model name, and the token accounting that prices
+their calls.
+"""

@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from pydantic import BaseModel
 
-from src.config.models import JUDGE_MODEL, JUDGE_WORKERS
+from src.config.models import JUDGE_MODELS, JUDGE_WORKERS
 from src.evaluation.prompts import RESPONSE_JUDGE_PROMPT
 from src.render import render_labeled_pool
 from src.schema import MetricScore, TrainingRow
@@ -53,7 +53,7 @@ class ResponseVerdict(BaseModel):
 class ResponseJudge:
     """Scores responses against their source rows using an LLM judge."""
 
-    def __init__(self, model: str = JUDGE_MODEL):
+    def __init__(self, model: str = JUDGE_MODELS[0]):
         self.model = model
 
     def grade(self, row: TrainingRow, parsed: ParsedAnswer) -> ResponseVerdict:
@@ -89,7 +89,7 @@ class ResponseJudge:
             try:
                 return self.grade(*pair)
             except Exception as error:
-                print(f"  judge failed on row {pair[0].id}: {error}")
+                print(f"  {self.model} judge failed on row {pair[0].id}: {error}")
                 return None
 
         with ThreadPoolExecutor(max_workers=workers) as executor:

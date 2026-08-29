@@ -2,7 +2,7 @@
 the per-model prices in the model config.
 """
 
-from src.config.models import TOKEN_PRICE
+from src.config.models import MODELS
 
 TOKENS_PER_PRICE_UNIT = 1_000_000
 
@@ -11,9 +11,9 @@ class TokenTracker:
     """Running token totals and cost for a single model."""
 
     def __init__(self, model: str):
-        if model not in TOKEN_PRICE:
+        if model not in MODELS:
             raise KeyError(
-                f"No price for model '{model}'. Add it to TOKEN_PRICE in src/config/models.py"
+                f"No price for model '{model}'. Add it to MODELS in src/config/models.py"
             )
         self.model = model
         self.input_tokens = 0
@@ -35,7 +35,7 @@ class TokenTracker:
         Returns:
             Input and output cost so far.
         """
-        price = TOKEN_PRICE[self.model]
+        price = MODELS[self.model]
         return (
             self.input_tokens / TOKENS_PER_PRICE_UNIT * price["input"],
             self.output_tokens / TOKENS_PER_PRICE_UNIT * price["output"],
