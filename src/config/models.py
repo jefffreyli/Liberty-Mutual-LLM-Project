@@ -15,6 +15,10 @@ DEFAULT_MODEL = "gpt-4o"
 # family is what keeps a cross-model comparison from being graded by a relative.
 JUDGE_MODELS = ("gpt-5.5",)
 JUDGE_WORKERS = 8  # parallel judge calls, each on its own thread-local client
+# A judge call that fails returns no verdict and the row is dropped from the
+# aggregate, so a judge failing often would report a mean over whichever rows
+# happened to succeed. Below this share of rows graded, the run fails instead.
+MIN_JUDGE_COVERAGE = 0.9
 
 # Output cap for structured generation. Only the Anthropic API requires one, but
 # a verdict with five justifications needs room, and on a thinking model the

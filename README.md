@@ -48,7 +48,7 @@ src/
   llm/            thread-local provider clients, keyed by model, and token accounting
   generation/     synthetic data generation and its rubric gate
   training/       answer format, reward metrics, SFT, RL, export
-  evaluation/     the baseline registry, sampling, LLM judges, and the scoring run
+  evaluation/     the baseline and benchmark registries, sampling, LLM judges, and the scoring run
 scripts/          command line entry points, one per stage
 docs/             pipeline flow and the generation rubric
 artifacts/        all derived output: runs/, checkpoints/, results/
@@ -137,4 +137,24 @@ Two graders run over the same responses:
 - **Programmatic** (`src/training/metrics.py`): citation F1 against the gold chunk IDs, per-hop answer coverage, and distractor leakage. This is the same function RL optimizes, which is why it lives alongside the trainers rather than in the evaluation package.
 - **LLM judge** (`src/evaluation/judge.py`, prompt in `src/evaluation/prompts.py`): a strong model scores chunk selection, rationale quality, hop completeness, answer grounding, and distractor resistance as 0 or 1 with a justification. Set the judges with `JUDGE_MODELS` in `src/config/models.py`; every model named anywhere in the pipeline needs an entry in `MODELS` there, which is what routes it to a provider and prices its calls.
 
-Aggregates print to the terminal, overall and split into answerable and unanswerable rows because the two are different tasks, and every response, score, and justification lands in `artifacts/results/<run>.json`. `format_ok` is worth reading first on any prompted baseline: it separates a model that reasoned badly from one that ignored the answer format.
+Aggregates print to the terminal, overall and, on a benchmark that has both, split into answerable and unanswerable rows because the two are different tasks. Every response, score, and justification lands in `artifacts/results/<run>.json`.
+
+**Benchmarks.** `--benchmark` picks the dataset instead of the model, so the same ladder can be scored on data the model was never trained on. `src/evaluation/benchmarks/` is the registry of what it accepts, and every entry adapts its dataset into the same `TrainingRow` shape, so one code path samples and grades all of them.
+
+```bash
+python3 -m scripts.evaluate --run rl --benchmark musique     # near transfer, and a seed source
+python3 -m scripts.evaluate --run rl --benchmark hotpotqa    # retriever-drawn distractors
+python3 -m scripts.evaluate --run rl --benchmark finqa       # financial filings, numeric answers
+python3 -m scripts.evaluate --run rl --benchmark longbench   # the same task at 10x the context
+python3 -m scripts.evaluate --run rl --benchmark browsecomp  # deep-research queries, mined hard negatives
+```
+
+The default, `synthetic`, is the generated test split and keeps writing to `artifacts/results/`; every other benchmark writes to `artifacts/results/<benchmark>/` and samples a seeded, stratified 300 rows. Rows are rejected before scoring if they would score well for the wrong reason: an empty decomposition makes `answer_coverage` return 1.0 for free, and a pool that is all gold or all distractor asks the model to decide nothing.
+
+Two judge rubrics exist because `hop_completeness` needs real per hop ground truth. MuSiQue and the generated split ship it and are graded on all five metrics; the rest are graded on the four that need only the pool and the gold IDs. A judge that fails on more than a tenth of the rows fails the run rather than reporting a mean over whichever rows survived.
+
+On `longbench` the gold answer is a paragraph id, so citation F1 is the number that matters and `answer_coverage` only checks whether the response names the paragraph it cited. Read `score` there as deflated by construction, not as a failure.
+
+`browsecomp` is the one benchmark whose task is constructed rather than adapted. A native BrowseComp-Plus pool is about 87 documents averaging 40k characters, roughly 900k tokens, so `src/evaluation/benchmarks/browsecomp.py` builds a passage level pool instead: documents are split into 1200-character passages, a gold document's informative passage is the one carrying the verbatim answer, and the distractors are the hard-negative passages ranking highest on query overlap, which is what a retriever would have surfaced. Passages that carry the answer are never used as distractors, near duplicates are dropped, and the pool is shuffled before IDs are assigned so gold never sits at a fixed position. **Its scores are not comparable to the published BrowseComp-Plus leaderboard**, which measures a retriever and an agent over the full corpus.
+
+Every field but `query_id` in that dataset is XOR obfuscated to keep it out of training crawls. It is de-obfuscated locally at load time and the plaintext only ever reaches `artifacts/`, which is gitignored. Do not publish it.
