@@ -5,6 +5,7 @@ locating the latest checkpoint of a previous run.
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime
 from pathlib import Path
@@ -81,6 +82,45 @@ def latest_checkpoint_path(log_path: Path, key: str = "state_path") -> str | Non
         return None
     record = checkpoint_utils.get_last_checkpoint(str(log_path), required_key=key)
     return getattr(record, key) if record else None
+
+
+def checkpoint_path(log_path: Path, name: str, key: str = "sampler_path") -> str | None:
+    """Find one named checkpoint written by a previous run.
+
+    Params:
+        log_path: Log directory of that run.
+        name: Checkpoint name as recorded in checkpoints.jsonl, such as
+            "000200" or "final".
+        key: "sampler_path" to sample or export weights, "state_path" to resume.
+
+    Returns:
+        The tinker:// path, or None if the run has no checkpoint by that name.
+    """
+    records_path = log_path / "checkpoints.jsonl"
+    if not records_path.exists():
+        return None
+    with open(records_path) as f:
+        for line in f:
+            record = json.loads(line)
+            if record.get("name") == name:
+                return record.get(key)
+    return None
+
+
+def checkpoint_names(log_path: Path) -> list[str]:
+    """List the checkpoints a run wrote, in the order they were saved.
+
+    Params:
+        log_path: Log directory of that run.
+
+    Returns:
+        The checkpoint names, empty if the run saved none.
+    """
+    records_path = log_path / "checkpoints.jsonl"
+    if not records_path.exists():
+        return []
+    with open(records_path) as f:
+        return [json.loads(line)["name"] for line in f if line.strip()]
 
 
 def config_from_argv(blueprint: chz.Blueprint[T], argv: list[str]) -> T:

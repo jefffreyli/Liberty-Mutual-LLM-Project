@@ -23,14 +23,18 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=None, help="rows to score, default all")
     parser.add_argument("--max-tokens", type=int, default=cfg.RL_MAX_TOKENS)
     parser.add_argument("--no-judge", action="store_true", help="skip the LLM judge")
+    parser.add_argument("--checkpoint", default=None, help="checkpoint name, default the run's latest")
     args = parser.parse_args()
 
     load_api_key()
-    records = evaluate(args.run, args.limit, args.max_tokens, use_judge=not args.no_judge)
+    records = evaluate(
+        args.run, args.limit, args.max_tokens, use_judge=not args.no_judge, checkpoint=args.checkpoint
+    )
     report(records)
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = RESULTS_DIR / f"{args.run}.json"
+    name = f"{args.run}_{args.checkpoint}" if args.checkpoint else args.run
+    output_path = RESULTS_DIR / f"{name}.json"
     with open(output_path, "w") as f:
         json.dump(records, f, indent=2)
     print(f"\nWrote {len(records)} records to {output_path}")

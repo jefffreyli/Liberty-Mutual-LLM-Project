@@ -88,7 +88,13 @@ def report(records: list[dict]) -> None:
         print(f"    {key}: {mean(j[key] for j in judged):.3f}")
 
 
-def evaluate(run: str, limit: int | None, max_tokens: int, use_judge: bool) -> list[dict]:
+def evaluate(
+    run: str,
+    limit: int | None,
+    max_tokens: int,
+    use_judge: bool,
+    checkpoint: str | None = None,
+) -> list[dict]:
     """Sample and score one set of weights.
 
     Params:
@@ -96,14 +102,17 @@ def evaluate(run: str, limit: int | None, max_tokens: int, use_judge: bool) -> l
         limit: Maximum rows to score, or None for the whole test split.
         max_tokens: Generation budget per answer.
         use_judge: Whether to run the LLM judge on top of the programmatic metrics.
+        checkpoint: Name of one checkpoint to score, or None for the run's latest.
 
     Returns:
         Per row records.
     """
     rows = held_out_rows(limit)
-    print(f"Evaluating {run} on {len(rows)} held out rows")
+    label = f"{run}/{checkpoint}" if checkpoint else run
+    print(f"Evaluating {label} on {len(rows)} held out rows")
 
-    completions = ResponseSampler(resolve_model_path(run), max_tokens=max_tokens).sample(rows)
+    model_path = resolve_model_path(run, checkpoint)
+    completions = ResponseSampler(model_path, max_tokens=max_tokens).sample(rows)
     parsed: list[ParsedAnswer] = [parse_answer(completion) for completion in completions]
     grades = [
         grade_answer(answer, row, **REWARD_WEIGHTS) for row, answer in zip(rows, parsed)

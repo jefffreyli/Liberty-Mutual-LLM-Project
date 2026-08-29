@@ -8,27 +8,38 @@ from src.config.models import SAMPLE_TEMPERATURE, SAMPLE_WORKERS
 from src.schema import TrainingRow
 from src.config import training as train_cfg
 from src.training.format import SYSTEM_PROMPT, build_user_prompt
-from src.training.session import latest_checkpoint_path, resolve_renderer_name
+from src.training.session import (
+    checkpoint_path,
+    latest_checkpoint_path,
+    resolve_renderer_name,
+)
 
 
 
-def resolve_model_path(run: str) -> str | None:
+def resolve_model_path(run: str, checkpoint: str | None = None) -> str | None:
     """Find the weights to evaluate for a named run.
 
     Params:
         run: "base" for the untrained model, otherwise a key of train_cfg.RUN_LOG_PATHS.
+        checkpoint: Name of one checkpoint to score, such as "000200", or None
+            for the run's latest.
 
     Returns:
         The tinker:// sampler path, or None to use base weights.
 
     Raises:
-        FileNotFoundError: If the run has not saved a sampler checkpoint yet.
+        FileNotFoundError: If the run has no matching sampler checkpoint.
     """
     if run == "base":
         return None
-    model_path = latest_checkpoint_path(train_cfg.RUN_LOG_PATHS[run], key="sampler_path")
+    log_path = train_cfg.RUN_LOG_PATHS[run]
+    if checkpoint is None:
+        model_path = latest_checkpoint_path(log_path, key="sampler_path")
+    else:
+        model_path = checkpoint_path(log_path, checkpoint, key="sampler_path")
     if model_path is None:
-        raise FileNotFoundError(f"No sampler checkpoint for the {run} run yet")
+        target = checkpoint or "latest"
+        raise FileNotFoundError(f"No sampler checkpoint {target!r} for the {run} run")
     return model_path
 
 
