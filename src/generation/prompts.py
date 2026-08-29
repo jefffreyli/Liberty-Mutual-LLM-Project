@@ -61,21 +61,40 @@ Write a comprehensive response grounded entirely in the informative paragraphs a
 # Prompt for generating the distractor paragraphs.
 DISTRACTOR_PROMPT = """You are generating distractor paragraphs for a search-augmented QA training dataset.
 
-Instruction: {instruction}
+Instruction the user is trying to complete: {instruction}
 
-Here are the informative paragraphs the instruction is based on:
+Here are the informative paragraphs that actually answer it:
 {informative_text}
 
 Generate exactly {n} distractor paragraphs. Each distractor must be:
-- A "neighboring concept": topically adjacent to the informative paragraphs but covering a DIFFERENT aspect, category, jurisdiction, policy type, or time period
-  Examples: if the informative text discusses commercial general liability, a distractor might cover professional liability or product liability; if it discusses California regulations, a distractor might cover New York regulations
-- Plausible as a real search result that a retrieval system might return for the same query
-- NOT a factual contradiction or false rewrite of anything stated in the informative paragraphs
-- NOT designed to trick the model with wrong versions of the truth
+- About the SAME aspect or subtopic as one of the informative paragraphs, not a different one. Take what an informative paragraph covers and shift exactly one parameter: the jurisdiction, the year, the policy tier, the population, the product variant, the unit of measurement
+  Example: if an informative paragraph gives the 2024 federal rate, a distractor gives the 2019 rate, or the state rate, or the rate for a different filing category
+- Written using the SAME vocabulary and phrasing as the instruction above, so that counting shared words with the instruction cannot separate it from the informative paragraphs. Reuse the instruction's own terms freely
+- Genuinely unable to complete the instruction, because the one shifted parameter makes it inapplicable
+- NOT a factual contradiction or false rewrite of anything stated in the informative paragraphs. The facts must be true of the case they describe, just the wrong case
 
-The goal is to test the model's ability to identify which retrieved passages are actually relevant to completing the instruction, NOT to test whether the model can detect falsehoods.
+A reader must have to notice the shifted parameter to reject the paragraph. Surface similarity to the instruction is the goal, not a signal of relevance.
 
 Each paragraph needs a realistic title and body text."""
+
+# Prompt for generating chunks that state a false version of a gold fact, so the
+# model has to prefer the mutually consistent informative cluster.
+CONTRADICTORY_PROMPT = """You are generating contradictory paragraphs for a search-augmented QA training dataset.
+
+Instruction: {instruction}
+
+Here are the informative paragraphs, which are the ground truth and are mutually consistent:
+{informative_text}
+
+Generate exactly {n} contradictory paragraphs. Each one must:
+- Assert a FALSE version of one specific fact stated in the informative paragraphs: a different number, date, name, threshold, or outcome for the SAME case
+- Describe the same jurisdiction, period and category as the fact it contradicts, so it cannot be dismissed as merely covering a neighboring case. It has to be wrong, not off topic
+- Read as an ordinary, confident retrieval result. No hedging and no signal that it is unreliable
+- Contradict the informative paragraphs only, never another contradictory paragraph
+
+For each one, report `contradicted_fact`: the true statement from the informative paragraphs that it contradicts, quoted or closely paraphrased.
+
+The informative paragraphs agree with each other and each contradictory paragraph is an outlier against them. That consistency is the only cue distinguishing them, which is exactly the signal the model must learn to use."""
 
 # Prompt for evaluating the training example using the rubric.
 RUBRIC_PROMPT = """You are evaluating a synthetic training example for a search-augmented multi-hop QA system. Score each metric as 0 (fail) or 1 (pass) with a brief justification.
@@ -91,6 +110,7 @@ RUBRIC_PROMPT = """You are evaluating a synthetic training example for a search-
 {search_pool_text}
 
 **Informative Paragraph IDs:** {informative_ids}
+**Contradictory Paragraph IDs:** {contradictory_ids}
 
 **Response:** {response}
 
@@ -100,7 +120,9 @@ RUBRIC_PROMPT = """You are evaluating a synthetic training example for a search-
 
 2. **distractor_plausibility**: Distractor paragraphs are topically related to the instruction and share high semantic similarity with the task domain. They should be genuinely plausible retrieval results a search engine might return. Score 0 if any distractor is obviously irrelevant or off-topic.
 
-3. **non_contradiction**: No distractor paragraph contains false versions of facts stated in the informative paragraphs. Distractors should cover neighboring concepts (different jurisdictions, policy types, time periods) rather than contradicting the truth. Score 0 if any distractor directly contradicts or falsely rewrites informative content.
+3. **non_contradiction**: No paragraph listed as a plain distractor contains a false version of a fact stated in the informative paragraphs. Plain distractors shift one parameter (jurisdiction, period, category) and stay true of the case they describe. Paragraphs listed as contradictory are exempt from this metric and are scored by contradiction_validity instead. Score 0 if a plain distractor falsely rewrites informative content.
+
+5. **contradiction_validity**: Every paragraph listed as contradictory asserts a false version of a fact the informative paragraphs state, for the same case rather than a neighboring one, and the informative paragraphs remain mutually consistent with each other. Score 1 when the row lists no contradictory paragraphs. Score 0 if a contradictory paragraph is merely off topic, contradicts another contradictory paragraph, or if the informative paragraphs disagree among themselves.
 
 4. **answer_grounding**: The response is fully supported by and grounded in ONLY the informative paragraphs. It contains no hallucinated facts or outside knowledge. Score 0 if the response contains claims not traceable to the informative paragraphs."""
 

@@ -17,7 +17,11 @@ from src.generation.instruction import (
     generate_instruction_bundle,
     generate_rationale,
 )
-from src.generation.noise import build_search_pool, generate_distractors
+from src.generation.noise import (
+    build_search_pool,
+    generate_contradictory,
+    generate_distractors,
+)
 from src.generation.seed_loader import SeedLoader
 from src.generation.unanswerable import build_unanswerable_row
 from src.schema import TrainingRow
@@ -95,7 +99,10 @@ class DatasetGenerator:
         distractors = generate_distractors(
             instruction=bundle.instruction, informative_chunks=informative_chunks
         )
-        search_pool = build_search_pool(informative_chunks, distractors)
+        contradictory = generate_contradictory(
+            instruction=bundle.instruction, informative_chunks=informative_chunks
+        )
+        search_pool = build_search_pool(informative_chunks, distractors, contradictory)
 
         return TrainingRow(
             id=row_id,

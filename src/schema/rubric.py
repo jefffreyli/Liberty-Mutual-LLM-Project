@@ -18,12 +18,14 @@ class RubricVerdict(BaseModel):
     Distractor plausibility: Distractor paragraphs are topically related to the instruction and share high semantic similarity with the task domain. They should be genuinely plausible retrieval results a search engine might return.
     Non-contradiction: No distractor paragraph contains false versions of facts stated in the informative paragraphs. Distractors should cover neighboring concepts (different jurisdictions, policy types, time periods) rather than contradicting the truth.
     Answer grounding: The response is fully supported by and grounded in ONLY the informative paragraphs. It contains no hallucinated facts or outside knowledge.
+    Contradiction validity: Every contradictory paragraph asserts a false version of a fact the informative paragraphs state, for the same case rather than a neighboring one, and the informative paragraphs stay consistent with each other.
     """
 
     logical_necessity: MetricScore
     distractor_plausibility: MetricScore
     non_contradiction: MetricScore
     answer_grounding: MetricScore
+    contradiction_validity: MetricScore
 
 
 class UnanswerableVerdict(BaseModel):
@@ -41,9 +43,13 @@ class UnanswerableVerdict(BaseModel):
 
 
 class EvaluationResult(BaseModel):
-    """Computed evaluation outcome with gate decision."""
+    """Computed evaluation outcome with gate decision.
 
-    verdict: RubricVerdict | UnanswerableVerdict
+    `verdict` is None when a code gate rejected the row before any teacher call
+    was made, so there are no metric scores to report.
+    """
+
+    verdict: RubricVerdict | UnanswerableVerdict | None
     aggregate_score: float
     passed: bool
     failure_reasons: list[str]

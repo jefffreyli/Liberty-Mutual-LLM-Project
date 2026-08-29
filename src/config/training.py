@@ -11,11 +11,13 @@ config to `chz`:
 from src.paths import CHECKPOINTS_DIR, RUNS_DIR
 
 # Data
-DATA_PATH = RUNS_DIR / "combined_3750.json"
+DATA_PATH = RUNS_DIR / "combined_3000_v2.json"
 # One conversation file per split, written by scripts/prepare_data.py. Keeping them
 # separate is what makes the validation rows the trainer holds out the same rows
-# src/evaluation reasons about, rather than a reshuffle of the training pool.
-SFT_DIR = RUNS_DIR / "sft"
+# src/evaluation reasons about, rather than a reshuffle of the training pool. The
+# directory is named after the dataset, so regenerating never leaves a trainer
+# reading splits built from a file that no longer exists.
+SFT_DIR = RUNS_DIR / "sft" / DATA_PATH.stem
 SFT_TRAIN_PATH = SFT_DIR / "train.jsonl"
 SFT_VAL_PATH = SFT_DIR / "val.jsonl"
 SFT_TEST_PATH = SFT_DIR / "test.jsonl"

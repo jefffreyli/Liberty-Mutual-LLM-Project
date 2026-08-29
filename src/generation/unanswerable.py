@@ -39,6 +39,7 @@ def build_unanswerable_row(row_id: str, source: str, seed: SeedExample | None) -
         n=NUM_UNANSWERABLE_DISTRACTORS,
     )
     # The informative chunks are dropped here; only the distractors reach the pool.
+    # No contradictory chunks either: with no gold facts there is nothing to contradict.
     search_pool = build_search_pool([], distractors)
     pool_text = render_pool(search_pool)
 

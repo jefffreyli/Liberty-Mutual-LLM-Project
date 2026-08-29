@@ -39,6 +39,20 @@ class DistractorResponse(BaseModel):
     paragraphs: list[DistractorParagraph]
 
 
+class ContradictoryParagraph(BaseModel):
+    """Paragraph asserting a false version of one fact the informative paragraphs state."""
+
+    title: str
+    text: str
+    contradicted_fact: str  # the true statement this paragraph contradicts
+
+
+class ContradictoryResponse(BaseModel):
+    """LLM output: list of contradictory paragraphs."""
+
+    paragraphs: list[ContradictoryParagraph]
+
+
 class RationaleResponse(BaseModel):
     """LLM output: rationale identifying informative vs distracting chunks."""
 

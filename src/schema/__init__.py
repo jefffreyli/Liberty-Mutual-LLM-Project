@@ -2,6 +2,8 @@
 
 from .core import UNASSIGNED_ID, DecompositionStep, SearchResult, TrainingRow
 from .generation import (
+    ContradictoryParagraph,
+    ContradictoryResponse,
     DistractorParagraph,
     DistractorResponse,
     GeneratedDecompositionStep,
@@ -18,6 +20,8 @@ __all__ = [
     "DecompositionStep",
     "SearchResult",
     "TrainingRow",
+    "ContradictoryParagraph",
+    "ContradictoryResponse",
     "DistractorParagraph",
     "DistractorResponse",
     "GeneratedDecompositionStep",

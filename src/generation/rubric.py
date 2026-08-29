@@ -6,12 +6,14 @@ own rubric, since necessity and grounding mean nothing without gold chunks.
 
 from src.config.generation import (
     HARD_PASS_METRICS,
+    LEXICAL_SHORTCUT_MAX_F1,
     METRIC_WEIGHTS,
     QUALITY_THRESHOLD,
     UNANSWERABLE_HARD_PASS_METRICS,
     UNANSWERABLE_METRIC_WEIGHTS,
 )
 from src.generation.prompts import RUBRIC_PROMPT, UNANSWERABLE_RUBRIC_PROMPT
+from src.generation.shortcut import is_lexically_solvable, lexical_ranking_f1
 from src.render import render_labeled_pool, render_pool
 from src.schema import EvaluationResult, RubricVerdict, TrainingRow, UnanswerableVerdict
 from src.llm.client import get_llm_client
@@ -36,6 +38,7 @@ def _build_rubric_prompt(row: TrainingRow) -> str:
         decomposition_text=decomposition_text,
         search_pool_text=render_labeled_pool(row.search_pool),
         informative_ids=[s.id for s in row.search_pool if s.is_informative],
+        contradictory_ids=row.contradictory_ids or "(none)",
         response=row.response,
     )
 
@@ -118,6 +121,19 @@ def evaluate_row(row: TrainingRow) -> EvaluationResult:
     Returns:
         The gate decision.
     """
+    # The code gate runs first because it costs nothing and rejects rows the
+    # teacher would otherwise be paid to approve.
+    if is_lexically_solvable(row, LEXICAL_SHORTCUT_MAX_F1):
+        return EvaluationResult(
+            verdict=None,
+            aggregate_score=0.0,
+            passed=False,
+            failure_reasons=[
+                f"lexical shortcut: word overlap recovers the gold set at F1 "
+                f"{lexical_ranking_f1(row):.2f} > {LEXICAL_SHORTCUT_MAX_F1}"
+            ],
+        )
+
     if not row.is_answerable:
         verdict = get_llm_client().generate(
             _build_unanswerable_prompt(row), UnanswerableVerdict

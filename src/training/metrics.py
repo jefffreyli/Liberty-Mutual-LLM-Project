@@ -6,34 +6,11 @@ stages are always measuring the same thing.
 
 from __future__ import annotations
 
-import re
 from dataclasses import asdict, dataclass
 
 from src.schema import TrainingRow
+from src.text import content_tokens
 from src.training.format import ParsedAnswer, gold_informative_ids, parse_answer
-
-_WORD_PATTERN = re.compile(r"[a-z0-9$%.]+")
-
-# Closed-class words carry no grounding signal, so any fluent response would
-# otherwise earn coverage points for free.
-_STOPWORDS = frozenset(
-    """a an and are as at be been but by for from had has have he her his i if in into is it
-    its of on or she that the their them there these they this to was were what when which who
-    will with would you your""".split()
-)
-
-
-def _content_tokens(text: str) -> set[str]:
-    """Tokenize text into lowercased content words.
-
-    Params:
-        text: Arbitrary text.
-
-    Returns:
-        The set of content tokens.
-    """
-    tokens = (token.strip(".") for token in _WORD_PATTERN.findall(text.lower()))
-    return {token for token in tokens if token and token not in _STOPWORDS}
 
 
 @dataclass(frozen=True)
@@ -97,13 +74,13 @@ def answer_coverage(response: str, row: TrainingRow) -> float:
     if not row.decomposition:
         return 1.0
 
-    response_tokens = _content_tokens(response)
+    response_tokens = content_tokens(response)
     if not response_tokens:
         return 0.0
 
     recalls = []
     for step in row.decomposition:
-        gold_tokens = _content_tokens(step.answer)
+        gold_tokens = content_tokens(step.answer)
         if gold_tokens:
             recalls.append(len(gold_tokens & response_tokens) / len(gold_tokens))
     return sum(recalls) / len(recalls) if recalls else 0.0
@@ -121,21 +98,21 @@ def distractor_leakage(response: str, row: TrainingRow) -> float:
         chunks. Normalizing by response length keeps the penalty stable as the
         pool grows.
     """
-    response_tokens = _content_tokens(response)
+    response_tokens = content_tokens(response)
     if not response_tokens:
         return 0.0
 
     informative_tokens: set[str] = set()
     distractor_tokens: set[str] = set()
     for chunk in row.search_pool:
-        chunk_tokens = _content_tokens(f"{chunk.title} {chunk.text}")
+        chunk_tokens = content_tokens(f"{chunk.title} {chunk.text}")
         if chunk.is_informative:
             informative_tokens |= chunk_tokens
         else:
             distractor_tokens |= chunk_tokens
 
     # Words shared with the gold chunks or the instruction are fair game.
-    exclusive = distractor_tokens - informative_tokens - _content_tokens(row.instruction)
+    exclusive = distractor_tokens - informative_tokens - content_tokens(row.instruction)
     return len(response_tokens & exclusive) / len(response_tokens)
 
 

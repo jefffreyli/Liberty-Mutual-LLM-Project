@@ -28,7 +28,7 @@ def write_run(generator: DatasetGenerator, output_path: Path) -> None:
     payload = {
         "config": {
             "num_rows": generator.num_rows,
-            "seed_dataset_name": config.SEED_DATASET_NAME or None,
+            "seed_dataset_name": generator.seed_dataset_name,
             "unanswerable_fraction": generator.unanswerable_fraction,
             "input_cost": input_cost,
             "output_cost": output_cost,
@@ -58,6 +58,11 @@ def parse_args() -> argparse.Namespace:
         default=config.UNANSWERABLE_FRACTION,
         help="Share of rows whose search pool holds no informative chunk.",
     )
+    parser.add_argument(
+        "--seed-dataset",
+        default=config.SEED_DATASET_NAME,
+        help='HuggingFace seed dataset, or "none" to generate without seeds.',
+    )
     parser.add_argument("--out", type=Path, default=None, help="Destination JSON path.")
     return parser.parse_args()
 
@@ -68,9 +73,10 @@ def main() -> None:
     output_path = args.out or RUNS_DIR / f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
 
     print(f"Generating {args.num_rows} training rows...")
+    seed_dataset = None if args.seed_dataset.lower() == "none" else args.seed_dataset
     generator = DatasetGenerator(
         num_rows=args.num_rows,
-        seed_dataset_name=config.SEED_DATASET_NAME,
+        seed_dataset_name=seed_dataset,
         unanswerable_fraction=args.unanswerable_fraction,
     )
     generator.generate_dataset()
