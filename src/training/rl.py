@@ -55,11 +55,7 @@ def row_tag(row: TrainingRow) -> str:
     Returns:
         The logging tag.
     """
-    return (
-        ANSWERABLE_TAG
-        if any(chunk.is_informative for chunk in row.search_pool)
-        else UNANSWERABLE_TAG
-    )
+    return ANSWERABLE_TAG if row.is_answerable else UNANSWERABLE_TAG
 
 
 class MultiHopEnv(ProblemEnv):

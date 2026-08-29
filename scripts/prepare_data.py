@@ -23,12 +23,17 @@ def main() -> None:
     train_rows, val_rows, test_rows = split_rows(rows, test_size, val_size, cfg.SEED)
     print(f"Loaded {len(rows)} rows from {cfg.DATA_PATH}")
 
-    write_conversations(train_rows + val_rows, cfg.SFT_JSONL_PATH)
     print(
         f"Split {len(rows)} rows into {len(train_rows)} train / {len(val_rows)} validation / "
         f"{len(test_rows)} test"
     )
-    print(f"Wrote {len(train_rows) + len(val_rows)} conversations to {cfg.SFT_JSONL_PATH}")
+    for split_rows_, path in (
+        (train_rows, cfg.SFT_TRAIN_PATH),
+        (val_rows, cfg.SFT_VAL_PATH),
+        (test_rows, cfg.SFT_TEST_PATH),
+    ):
+        write_conversations(split_rows_, path)
+        print(f"  wrote {len(split_rows_):>4} conversations to {path.name}")
 
     print("\nExample conversation:")
     for message in row_to_messages(train_rows[0]):

@@ -38,3 +38,14 @@ class TrainingRow(BaseModel):
     search_pool: list[SearchResult]
     rationale: str
     response: str
+
+    @property
+    def is_answerable(self) -> bool:
+        """Whether the search pool can complete the instruction.
+
+        Returns:
+            True when at least one chunk is informative. An unanswerable row has
+            a pool of distractors only, an empty decomposition, and a response
+            that declines to answer.
+        """
+        return any(chunk.is_informative for chunk in self.search_pool)

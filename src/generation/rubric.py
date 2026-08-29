@@ -118,7 +118,7 @@ def evaluate_row(row: TrainingRow) -> EvaluationResult:
     Returns:
         The gate decision.
     """
-    if not any(chunk.is_informative for chunk in row.search_pool):
+    if not row.is_answerable:
         verdict = get_llm_client().generate(
             _build_unanswerable_prompt(row), UnanswerableVerdict
         )

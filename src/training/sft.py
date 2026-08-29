@@ -1,22 +1,36 @@
-"""Supervised fine-tunes the base model on the generated multi-hop data with Tinker, teaching
-the answer format defined in src/training/format.py. The conversation JSONL is built on demand,
-and any config field can be overridden on the command line.
+"""Supervised fine-tunes the base model on the generated multi-hop data with Tinker.
 """
 
 from __future__ import annotations
 
 import asyncio
 import sys
+from pathlib import Path
 
 import chz
+import datasets
+import tinker
 from tinker_cookbook import cli_utils
 from tinker_cookbook.renderers import TrainOnWhat
 from tinker_cookbook.supervised import train
-from tinker_cookbook.supervised.data import FromConversationFileBuilder
-from tinker_cookbook.supervised.types import ChatDatasetBuilderCommonConfig
+from tinker_cookbook.supervised.data import (
+    SupervisedDatasetFromHFDataset,
+    conversation_to_datum,
+)
+from tinker_cookbook.supervised.types import (
+    ChatDatasetBuilder,
+    ChatDatasetBuilderCommonConfig,
+    SupervisedDataset,
+)
 
 from src.config import training as cfg
-from src.training.data import load_rows, split_rows, split_sizes, write_conversations
+from src.training.data import (
+    load_rows,
+    read_conversations,
+    split_rows,
+    split_sizes,
+    write_conversations,
+)
 from src.training.session import (
     config_from_argv,
     load_api_key,
@@ -25,23 +39,68 @@ from src.training.session import (
 )
 
 
-def ensure_conversations() -> None:
-    """Build the SFT conversation JSONL from the run JSON if it is missing.
+@chz.chz
+class SplitFileBuilder(ChatDatasetBuilder):
+    """Builds the SFT datasets from one conversation file per split.
 
-    Only the training split is written, so the rows src/evaluation scores stay unseen.
+    Reading the splits from separate files rather than carving a slice off a
+    combined file is what keeps the validation rows identical to the ones
+    src/training/data.py assigns, so SFT and RL monitor the same rows.
     """
-    if cfg.SFT_JSONL_PATH.exists():
+
+    train_path: str
+    val_path: str
+
+    def __call__(self) -> tuple[SupervisedDataset, SupervisedDataset | None]:
+        """Load the training and validation conversations.
+
+        Returns:
+            The training dataset and, when the validation file has rows, a
+            dataset holding all of them in a single batch.
+        """
+        train_on_what = self.common_config.train_on_what or TrainOnWhat.ALL_ASSISTANT_MESSAGES
+
+        def to_datum(row: dict) -> tinker.Datum:
+            return conversation_to_datum(
+                row["messages"], self.renderer, self.common_config.max_length, train_on_what
+            )
+
+        train_rows = read_conversations(Path(self.train_path))
+        val_rows = read_conversations(Path(self.val_path))
+        train_dataset = SupervisedDatasetFromHFDataset(
+            datasets.Dataset.from_list(train_rows),
+            batch_size=self.common_config.batch_size,
+            map_fn=to_datum,
+        )
+        val_dataset = (
+            SupervisedDatasetFromHFDataset(
+                datasets.Dataset.from_list(val_rows),
+                batch_size=len(val_rows),
+                map_fn=to_datum,
+            )
+            if val_rows
+            else None
+        )
+        return train_dataset, val_dataset
+
+
+def ensure_conversations() -> None:
+    """Write one conversation file per split from the run JSON if they are missing.
+
+    The test file is written for inspection only. No trainer reads it.
+    """
+    if cfg.SFT_TRAIN_PATH.exists() and cfg.SFT_VAL_PATH.exists():
         return
     rows = load_rows(cfg.DATA_PATH)
     test_size, val_size = split_sizes(len(rows), cfg.TEST_FRACTION, cfg.VAL_FRACTION)
-    train_rows, val_rows, _ = split_rows(rows, test_size, val_size, cfg.SEED)
-    # The builder carves its own held out slice off the front of this file, so the
-    # validation rows ride along with the training rows rather than in their own file.
-    write_conversations(train_rows + val_rows, cfg.SFT_JSONL_PATH)
-    print(
-        f"Wrote {len(train_rows) + len(val_rows)} conversations to {cfg.SFT_JSONL_PATH} "
-        f"({len(train_rows)} train + {len(val_rows)} validation)"
-    )
+    train_rows, val_rows, test_rows = split_rows(rows, test_size, val_size, cfg.SEED)
+    for split_rows_, path in (
+        (train_rows, cfg.SFT_TRAIN_PATH),
+        (val_rows, cfg.SFT_VAL_PATH),
+        (test_rows, cfg.SFT_TEST_PATH),
+    ):
+        write_conversations(split_rows_, path)
+        print(f"Wrote {len(split_rows_)} conversations to {path}")
 
 
 def build_config_blueprint() -> chz.Blueprint[train.Config]:
@@ -50,9 +109,6 @@ def build_config_blueprint() -> chz.Blueprint[train.Config]:
     Returns:
         A blueprint whose fields can still be overridden from argv.
     """
-    _, val_size = split_sizes(
-        len(load_rows(cfg.DATA_PATH)), cfg.TEST_FRACTION, cfg.VAL_FRACTION
-    )
     renderer_name = resolve_renderer_name(cfg.MODEL_NAME, cfg.RENDERER_NAME)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=cfg.MODEL_NAME,
@@ -63,12 +119,10 @@ def build_config_blueprint() -> chz.Blueprint[train.Config]:
         # to assistant tokens only.
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    dataset_builder = FromConversationFileBuilder(
+    dataset_builder = SplitFileBuilder(
         common_config=common_config,
-        file_path=str(cfg.SFT_JSONL_PATH),
-        # The validation rows, used for held out NLL during the run.
-        test_size=val_size,
-        shuffle_seed=cfg.SEED,
+        train_path=str(cfg.SFT_TRAIN_PATH),
+        val_path=str(cfg.SFT_VAL_PATH),
     )
     return chz.Blueprint(train.Config).apply(
         {

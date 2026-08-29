@@ -1,5 +1,6 @@
-"""Converts a generated run JSON into the conversation JSONL that Tinker's SFT loop reads, and
-reports the token length distribution so the max sequence length can be set before training.
+"""Converts a generated run JSON into the per split conversation JSONL that Tinker's SFT loop
+reads, reads those files back, and reports the token length distribution so the max sequence
+length can be set before training.
 """
 
 from __future__ import annotations
@@ -91,11 +92,25 @@ def write_conversations(rows: list[TrainingRow], output_path: Path) -> None:
             f.write(json.dumps({"messages": row_to_messages(row)}, ensure_ascii=False) + "\n")
 
 
+def read_conversations(path: Path) -> list[dict]:
+    """Read a conversation JSONL back into rows.
+
+    Params:
+        path: Path to a file of one JSON conversation per line.
+
+    Returns:
+        The rows, each holding a "messages" key.
+    """
+    with open(path) as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
 def report_token_lengths(rows: list[TrainingRow], model_name: str, max_length: int) -> None:
     """Print the token length distribution of the rendered conversations.
 
-    Examples longer than the training max length are silently dropped by the
-    trainer, so this is the check that they are rare before a run starts.
+    The trainer truncates an over length example from the right rather than
+    dropping it, which silently cuts the end off the assistant target, so this is
+    the check that no example exceeds the limit before a run starts.
 
     Params:
         rows: The training rows.

@@ -12,7 +12,13 @@ from src.paths import CHECKPOINTS_DIR, RUNS_DIR
 
 # Data
 DATA_PATH = RUNS_DIR / "combined_3750.json"
-SFT_JSONL_PATH = RUNS_DIR / "sft" / "conversations_3750.jsonl"
+# One conversation file per split, written by scripts/prepare_data.py. Keeping them
+# separate is what makes the validation rows the trainer holds out the same rows
+# src/evaluation reasons about, rather than a reshuffle of the training pool.
+SFT_DIR = RUNS_DIR / "sft"
+SFT_TRAIN_PATH = SFT_DIR / "train.jsonl"
+SFT_VAL_PATH = SFT_DIR / "val.jsonl"
+SFT_TEST_PATH = SFT_DIR / "test.jsonl"
 # A 90/5/5 train, validation, test split. Fractions rather than counts so the
 # ratio holds as the dataset grows. Test rows are reserved for src/evaluation and
 # neither trainer ever sees them, so scores stay comparable across the base
@@ -29,11 +35,17 @@ SEED = 42
 # to the model's default recommended renderer.
 MODEL_NAME = "Qwen/Qwen3.5-9B"
 RENDERER_NAME = "qwen3_5_disable_thinking"
-LORA_RANK = 32
+# Rank 16 is 47M trainable parameters against roughly 7M supervised tokens over
+# two epochs. Rank 32 doubles the adapter without more data to fit it, and the
+# answer format these targets teach is low rank by nature.
+LORA_RANK = 16
 
 # Supervised fine-tuning
 SFT_LOG_PATH = CHECKPOINTS_DIR / "sft"
-SFT_LEARNING_RATE = 1e-4
+# tinker_cookbook's calibrated LoRA rate for this model is 4.7e-4. Linear decay
+# halves the average, and a 420 step run is short, so this sits between the two
+# rather than at the old 1e-4, which underfits.
+SFT_LEARNING_RATE = 2e-4
 SFT_LR_SCHEDULE = "linear"
 SFT_NUM_EPOCHS = 2
 SFT_BATCH_SIZE = 16  # rows per batch
@@ -47,7 +59,10 @@ RL_LOG_PATH = CHECKPOINTS_DIR / "rl"
 RL_LEARNING_RATE = 4e-5
 RL_GROUP_SIZE = 8
 RL_GROUPS_PER_BATCH = 16
-RL_MAX_TOKENS = 2048  # generated tokens per rollout
+# Generated tokens per rollout. The longest teacher target is 1928 tokens, so
+# 2048 left a rollout only 6% of headroom: anything more verbose gets cut mid
+# response, fails to parse, and scores zero for length rather than for being wrong.
+RL_MAX_TOKENS = 2560
 RL_KL_PENALTY_COEF = 0.0
 RL_SAVE_EVERY = 20
 RL_EVAL_EVERY = 20

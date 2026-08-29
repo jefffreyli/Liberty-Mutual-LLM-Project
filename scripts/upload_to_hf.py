@@ -27,8 +27,8 @@ FEATURES = Features(
 )
 
 
-def load_rows(path: Path) -> list[dict]:
-    """Read the rows of a run JSON.
+def load_raw_rows(path: Path) -> list[dict]:
+    """Read the rows of a run JSON without validating them.
 
     Params:
         path: Path to the run JSON.
@@ -71,7 +71,7 @@ def main() -> None:
     args = parser.parse_args()
 
     print(f"Loading {args.file} ...")
-    rows = load_rows(args.file)
+    rows = load_raw_rows(args.file)
     print(f"  {len(rows):,} rows loaded")
 
     dataset = build_dataset(rows)
